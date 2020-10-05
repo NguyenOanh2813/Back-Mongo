@@ -38,6 +38,7 @@ function verifyToken(req, res, next) {
     next()
 }
 
+
 router.get('/', (req, res) => {
     res.send('From API route')
 })
@@ -107,38 +108,29 @@ router.post('/faculty', (req, res) => {
     })
 })
 
-router.patch('/faculty/:id', (req, res) => { //update
-    if (!req.body) {
-        return res.status(400).send({
-          message: "Data to update can not be empty!"
-        });
-      }
-    
-      const id = req.params._id;
-    
-      Tutorial.findByIdAndUpdate(id, req.body, { useFindAndModify: false })
-        .then(data => {
-          if (!data) {
-            res.status(404).send({
-              message: `Cannot update Tutorial with id=${id}. Maybe Tutorial was not found!`
-            });
-          } else res.send({ message: "Tutorial was updated successfully." });
-        })
-        .catch(err => {
-          res.status(500).send({
-            message: "Error updating Tutorial with id=" + id
-          });
-        });
+router.put('/faculty/:id', (req, res) => { //update
+    Faculty.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
 })
 
 router.delete('/faculty/:id', (req, res) => {
+    Faculty.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedListDoc) => {
+        res.send(removedListDoc);
 
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedListDoc._id);
+    })
 })
 
-// Majors
-router.get('/major', (req, res) => {
+// Majors in Faculty
+router.get('/faculty/:facultyId/major', (req, res) => {
     Major.find({
-        majorName: req.majorName
+        facultyID: req.params.facultyId
     }).then((major) => {
         res.json(major);
     }).catch((e) => {
@@ -146,13 +138,69 @@ router.get('/major', (req, res) => {
     });
 })
 
-router.post('/major', (req, res) => {
-    let majorData = req.body
-    let major = new Major(majorData)
+router.post('/faculty/:facultyId/major', (req, res) => {
+    Faculty.findOne({
+        _id: req.params.facultyId
+    }).then((faculty) => {
+        if (faculty) {
+            return true;
+        }
+
+        return false;
+    }).then((canCreateMajor) => {
+        if (canCreateMajor) {
+            let newMajor = new Major({
+                university: req.body.university,
+                facultyID: req.params.facultyId,
+                majorName: req.body.majorName,
+                majorID: req.body.majorID
+            });
+            newMajor.save().then((newMajorDoc) => {
+                res.send(newMajorDoc);
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    })
+})
+
+router.put('/major/:id', (req, res) => {
+    Major.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
+})
+
+router.delete('/major/:id', (req, res) => {
+    Major.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedListDoc) => {
+        res.send(removedListDoc);
+
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedListDoc._id);
+    })
+})
+
+//Exam cluster
+router.get('/exam-cluster', (req, res) => {
+    ExamCluster.find({
+        ClusterName: req.clusterName
+    }).then((cluster) => {
+        res.json(cluster);
+    }).catch((e) => {
+        res.send(e);
+    });
+})
+
+router.post('/exam-cluster', (req, res) => {
+    let clusterData = req.body
+    let cluster = new ExamCluster(clusterData)
 
     //save in database
-    major
-    .save(major)
+    cluster
+    .save(cluster)
     .then(data => {
         res.send(data)
     }).catch(err => {
@@ -163,18 +211,107 @@ router.post('/major', (req, res) => {
     })
 })
 
-router.patch('/major', (req, res) => {
-
+router.put('/exam-cluster/:id', (req, res) => {
+    ExamCluster.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
 })
 
-router.delete('/major', (req, res) => {
+router.delete('/exam-cluster/:id', (req, res) => {
+    ExamCluster.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedListDoc) => {
+        res.send(removedListDoc);
 
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedListDoc._id);
+    })
 })
-
-//Exam cluster
-
 
 //Exam location
+router.get('/exam-location', (req, res) => {
+    ExamLocation.find({
+        LocationName: req.locationName
+    }).then((location) => {
+        res.json(location);
+    }).catch((e) => {
+        res.send(e);
+    });
+})
 
+router.post('/exam-location', (req, res) => {
+    let locationData = req.body
+    let location = new ExamLocation(locationData)
+
+    //save in database
+    location
+    .save(location)
+    .then(data => {
+        res.send(data)
+    }).catch(err => {
+        res.status(500).send({
+            message:
+            err.message || "Some error occurred while creating the Tutorial."
+        })
+    })
+})
+
+router.put('/exam-location/:id', (req, res) => {
+    ExamLocation.findOneAndUpdate({ _id: req.params.id }, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
+})
+
+router.delete('/exam-location/:id', (req, res) => {
+    ExamLocation.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedListDoc) => {
+        res.send(removedListDoc);
+
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedListDoc._id);
+    })
+})
 
 //Test score
+router.get('/test-score', (req, res) => {
+    TestScore.find({
+        Subject: req.subject
+    }).then((testScore) => {
+        res.json(testScore);
+    }).catch((e) => {
+        res.send(e);
+    });
+})
+
+router.post('/test-score', (req, res) => {
+    let testScoreData = req.body
+    let testScore = new TestScore(testScoreData)
+
+    //save in database
+    testScore
+    .save(testScore)
+    .then(data => {
+        res.send(data)
+    }).catch(err => {
+        res.status(500).send({
+            message:
+            err.message || "Some error occurred while creating the Tutorial."
+        })
+    })
+})
+
+router.delete('/test-score/:id', (req, res) => {
+    TestScore.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedListDoc) => {
+        res.send(removedListDoc);
+
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedListDoc._id);
+    })
+})
