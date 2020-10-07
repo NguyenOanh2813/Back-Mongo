@@ -145,23 +145,55 @@ router.post('/university/:universityId/faculty', (req, res) => {
     })
 })
 
-router.put('/major/:id', (req, res) => {
-    Major.findOneAndUpdate({ _id: req.params.id}, {
-        $set: req.body
-    }).then(() => {
-        res.send({ 'message': 'updated successfully'});
-    });
+router.put('/university/:universityId/faculty/:facultyId', (req, res) => {
+    University.findOne({
+        _id: req.params.universityId
+    }).then((university) => {
+        if (university) {
+            return true;
+        }
+
+        return false;
+    }).then((canUpdateFaculty) => {
+        if (canUpdateFaculty) {
+            // the currently authenticated user can update tasks
+            Faculty.findOneAndUpdate({
+                _id: req.params.facultyId,
+                uniID: req.params.universityId
+            }, {
+                    $set: req.body
+                }
+            ).then(() => {
+                res.send({ message: 'Updated successfully.' })
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    })
 })
 
-router.delete('/major/:id', (req, res) => {
-    Major.findOneAndRemove({
-        _id: req.params.id
-    }).then((removedListDoc) => {
-        res.send(removedListDoc);
+router.delete('/university/:universityId/faculty/:facultyId', (req, res) => {
+    University.findOne({
+        _id: req.params.universityId
+    }).then((university) => {
+        if (university) {
+            return true;
+        }
 
-        // delete all the tasks that are in the deleted list
-        deleteTasksFromList(removedListDoc._id);
-    })
+        return false;
+    }).then((canDeleteFaculty) => {
+        
+        if (canDeleteFaculty) {
+            Faculty.findOneAndRemove({
+                _id: req.params.facultyId,
+                uniID: req.params.universityId
+            }).then((removedFacultyDoc) => {
+                res.send(removedFacultyDoc);
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    });
 })
 
 //Exam cluster
@@ -249,12 +281,55 @@ router.post('/exam-cluster/:clusterId/exam-location', (req, res) => {
     })
 })
 
-router.put('/exam-location/:id', (req, res) => {
-    
+router.put('/exam-cluster/:clusterId/exam-location/:locationId', (req, res) => {
+    ExamCluster.findOne({
+        _id: req.params.clusterId
+    }).then((cluster) => {
+        if (cluster) {
+            return true;
+        }
+
+        return false;
+    }).then((canUpdateLocation) => {
+        if (canUpdateLocation) {
+            // the currently authenticated user can update tasks
+            ExamLocation.findOneAndUpdate({
+                _id: req.params.locationId,
+                cltID: req.params.clusterId
+            }, {
+                    $set: req.body
+                }
+            ).then(() => {
+                res.send({ message: 'Updated successfully.' })
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    })
 })
 
-router.delete('/exam-location/:id', (req, res) => {
-    
+router.delete('/exam-cluster/:clusterId/exam-location/:locationId', (req, res) => {
+    ExamCluster.findOne({
+        _id: req.params.clusterId
+    }).then((cluster) => {
+        if (cluster) {
+            return true;
+        }
+
+        return false;
+    }).then((canDeleteLocation) => {
+        
+        if (canDeleteLocation) {
+            ExamLocation.findOneAndRemove({
+                _id: req.params.locationId,
+                cltID: req.params.clusterId
+            }).then((removedLocationDoc) => {
+                res.send(removedLocationDoc);
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    });
 })
 
 //Test score
