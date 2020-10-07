@@ -2,8 +2,8 @@ const mongoose = require('mongoose')
 
 const Schema = mongoose.Schema
 const majorSchema = new Schema({
-    university: String,
-    facultyID: String,
+    uniID: String,
+    falID: String,
     majorName: String,
     majorID: String
 })

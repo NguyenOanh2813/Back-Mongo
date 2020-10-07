@@ -2,9 +2,9 @@ const mongoose = require('mongoose')
 
 const Schema = mongoose.Schema
 const examLocationSchema = new Schema({
-    locationID: String,
-    clusterName: String,
+    cltID: String,
     locationName: String,
+    locationID: String,
     address: String,
     room: Number
 })

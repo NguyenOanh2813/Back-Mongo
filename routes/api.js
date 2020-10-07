@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken')
 const router = express.Router()
 
 const User = require('../models/user')
+const University = require('../models/university')
 const ExamCluster = require('../models/exam-cluster')
 const ExamLocation = require('../models/exam-location')
 const Faculty = require('../models/faculty')
@@ -38,11 +39,11 @@ function verifyToken(req, res, next) {
     next()
 }
 
-
 router.get('/', (req, res) => {
     res.send('From API route')
 })
 
+//Authentication
 router.post('/register', (req, res) => {
     let userData = req.body
     let user = new User(userData)
@@ -80,24 +81,24 @@ router.post('/login', (req, res) =>{
     })
 })
 
-//Faculty
-router.get('/faculty', (req, res) => {
-    Faculty.find({
-        FacultyName: req.facultyName
-    }).then((faculty) => {
-        res.json(faculty);
+//University
+router.get('/university', (req, res) => {
+    University.find({
+        UniversityName: req.universityName
+    }).then((university) => {
+        res.json(university);
     }).catch((e) => {
         res.send(e);
     });
 })
 
-router.post('/faculty', (req, res) => {
-    let facultyData = req.body
-    let faculty = new Faculty(facultyData)
+router.post('/university', (req, res) => {
+    let universityData = req.body
+    let university = new University(universityData)
 
     //save in database
-    faculty
-    .save(faculty)
+    university
+    .save(university)
     .then(data => {
         res.send(data)
     }).catch(err => {
@@ -108,55 +109,35 @@ router.post('/faculty', (req, res) => {
     })
 })
 
-router.put('/faculty/:id', (req, res) => { //update
-    Faculty.findOneAndUpdate({ _id: req.params.id}, {
-        $set: req.body
-    }).then(() => {
-        res.send({ 'message': 'updated successfully'});
-    });
-})
-
-router.delete('/faculty/:id', (req, res) => {
-    Faculty.findOneAndRemove({
-        _id: req.params.id
-    }).then((removedListDoc) => {
-        res.send(removedListDoc);
-
-        // delete all the tasks that are in the deleted list
-        deleteTasksFromList(removedListDoc._id);
-    })
-})
-
-// Majors in Faculty
-router.get('/faculty/:facultyId/major', (req, res) => {
-    Major.find({
-        facultyID: req.params.facultyId
-    }).then((major) => {
-        res.json(major);
+// Faculty
+router.get('/university/:universityId/faculty', (req, res) => {
+    Faculty.find({
+        uniID: req.params.universityId
+    }).then((faculty) => {
+        res.json(faculty);
     }).catch((e) => {
         res.send(e);
     });
 })
 
-router.post('/faculty/:facultyId/major', (req, res) => {
-    Faculty.findOne({
-        _id: req.params.facultyId
-    }).then((faculty) => {
-        if (faculty) {
+router.post('/university/:universityId/faculty', (req, res) => {
+    University.findOne({
+        _id: req.params.universityId
+    }).then((university) => {
+        if (university) {
             return true;
         }
 
         return false;
-    }).then((canCreateMajor) => {
-        if (canCreateMajor) {
-            let newMajor = new Major({
-                university: req.body.university,
-                facultyID: req.params.facultyId,
-                majorName: req.body.majorName,
-                majorID: req.body.majorID
+    }).then((canCreateFaculty) => {
+        if (canCreateFaculty) {
+            let newFaculty = new Faculty({
+                uniID: req.params.universityId,
+                facultyName: req.body.facultyName,
+                facultyID: req.body.facultyID
             });
-            newMajor.save().then((newMajorDoc) => {
-                res.send(newMajorDoc);
+            newFaculty.save().then((newFacultyDoc) => {
+                res.send(newFacultyDoc);
             })
         } else {
             res.sendStatus(404);
@@ -231,9 +212,9 @@ router.delete('/exam-cluster/:id', (req, res) => {
 })
 
 //Exam location
-router.get('/exam-location', (req, res) => {
+router.get('/exam-cluster/:clusterId/exam-location', (req, res) => {
     ExamLocation.find({
-        LocationName: req.locationName
+        cltID: req.params.clusterId
     }).then((location) => {
         res.json(location);
     }).catch((e) => {
@@ -241,40 +222,39 @@ router.get('/exam-location', (req, res) => {
     });
 })
 
-router.post('/exam-location', (req, res) => {
-    let locationData = req.body
-    let location = new ExamLocation(locationData)
+router.post('/exam-cluster/:clusterId/exam-location', (req, res) => {
+    ExamCluster.findOne({
+        _id: req.params.clusterId
+    }).then((cluster) => {
+        if (cluster) {
+            return true;
+        }
 
-    //save in database
-    location
-    .save(location)
-    .then(data => {
-        res.send(data)
-    }).catch(err => {
-        res.status(500).send({
-            message:
-            err.message || "Some error occurred while creating the Tutorial."
-        })
+        return false;
+    }).then((canCreateLocation) => {
+        if (canCreateLocation) {
+            let newLocation = new ExamLocation({
+                cltID: req.params.clusterId,
+                locationName: req.body.locationName,
+                locationID: req.body.locationID,
+                address: req.body.address,
+                room: req.body.room
+            });
+            newLocation.save().then((newLocationDoc) => {
+                res.send(newLocationDoc);
+            })
+        } else {
+            res.sendStatus(404);
+        }
     })
 })
 
 router.put('/exam-location/:id', (req, res) => {
-    ExamLocation.findOneAndUpdate({ _id: req.params.id }, {
-        $set: req.body
-    }).then(() => {
-        res.send({ 'message': 'updated successfully'});
-    });
+    
 })
 
 router.delete('/exam-location/:id', (req, res) => {
-    ExamLocation.findOneAndRemove({
-        _id: req.params.id
-    }).then((removedListDoc) => {
-        res.send(removedListDoc);
-
-        // delete all the tasks that are in the deleted list
-        deleteTasksFromList(removedListDoc._id);
-    })
+    
 })
 
 //Test score
