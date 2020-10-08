@@ -6,12 +6,11 @@ const User = require('../models/user')
 const University = require('../models/university')
 const ExamCluster = require('../models/exam-cluster')
 const ExamLocation = require('../models/exam-location')
-const Faculty = require('../models/faculty')
-const Major = require('../models/major')
 const TestScore = require('../models/test-score')
+const Post = require('../models/post')
 
 const mongoose = require('mongoose')
-const faculty = require('../models/faculty')
+
 
 mongoose.connect('mongodb+srv://nguyenoanh:nxE7Gs0E8dsZu2XU@cluster0.5asx0.mongodb.net/StuManage?retryWrites=true&w=majority', {useNewUrlParser: true, useUnifiedTopology: true}, function(err){
     if(err){
@@ -81,6 +80,8 @@ router.post('/login', (req, res) =>{
     })
 })
 
+
+
 //University
 router.get('/university', (req, res) => {
     University.find({
@@ -109,18 +110,20 @@ router.post('/university', (req, res) => {
     })
 })
 
-// Faculty
-router.get('/university/:universityId/faculty', (req, res) => {
-    Faculty.find({
+
+
+// Post
+router.get('/university/:universityId/posts', (req, res) => {
+    Post.find({
         uniID: req.params.universityId
-    }).then((faculty) => {
-        res.json(faculty);
+    }).then((post) => {
+        res.json(post);
     }).catch((e) => {
         res.send(e);
     });
 })
 
-router.post('/university/:universityId/faculty', (req, res) => {
+router.post('/university/:universityId/posts', (req, res) => {
     University.findOne({
         _id: req.params.universityId
     }).then((university) => {
@@ -129,15 +132,17 @@ router.post('/university/:universityId/faculty', (req, res) => {
         }
 
         return false;
-    }).then((canCreateFaculty) => {
-        if (canCreateFaculty) {
-            let newFaculty = new Faculty({
+    }).then((canCreatePosts) => {
+        if (canCreatePosts) {
+            let newPost = new Post({
                 uniID: req.params.universityId,
                 facultyName: req.body.facultyName,
-                facultyID: req.body.facultyID
+                majorName: req.body.majorName,
+                content: req.body.content,
+                date_posted: req.body.date_posted
             });
-            newFaculty.save().then((newFacultyDoc) => {
-                res.send(newFacultyDoc);
+            newPost.save().then((newPostDoc) => {
+                res.send(newPostDoc);
             })
         } else {
             res.sendStatus(404);
@@ -145,7 +150,7 @@ router.post('/university/:universityId/faculty', (req, res) => {
     })
 })
 
-router.put('/university/:universityId/faculty/:facultyId', (req, res) => {
+router.put('/university/:universityId/posts/:postId', (req, res) => {
     University.findOne({
         _id: req.params.universityId
     }).then((university) => {
@@ -154,11 +159,10 @@ router.put('/university/:universityId/faculty/:facultyId', (req, res) => {
         }
 
         return false;
-    }).then((canUpdateFaculty) => {
-        if (canUpdateFaculty) {
-            // the currently authenticated user can update tasks
-            Faculty.findOneAndUpdate({
-                _id: req.params.facultyId,
+    }).then((canUpdatePost) => {
+        if (canUpdatePost) {
+            Post.findOneAndUpdate({
+                _id: req.params.postId,
                 uniID: req.params.universityId
             }, {
                     $set: req.body
@@ -172,7 +176,7 @@ router.put('/university/:universityId/faculty/:facultyId', (req, res) => {
     })
 })
 
-router.delete('/university/:universityId/faculty/:facultyId', (req, res) => {
+router.delete('/university/:universityId/posts/:postId', (req, res) => {
     University.findOne({
         _id: req.params.universityId
     }).then((university) => {
@@ -181,20 +185,22 @@ router.delete('/university/:universityId/faculty/:facultyId', (req, res) => {
         }
 
         return false;
-    }).then((canDeleteFaculty) => {
+    }).then((canDeletePost) => {
         
-        if (canDeleteFaculty) {
-            Faculty.findOneAndRemove({
-                _id: req.params.facultyId,
+        if (canDeletePost) {
+            Post.findOneAndRemove({
+                _id: req.params.postId,
                 uniID: req.params.universityId
-            }).then((removedFacultyDoc) => {
-                res.send(removedFacultyDoc);
+            }).then((removedPostDoc) => {
+                res.send(removedPostDoc);
             })
         } else {
             res.sendStatus(404);
         }
     });
 })
+
+
 
 //Exam cluster
 router.get('/exam-cluster', (req, res) => {
@@ -242,6 +248,8 @@ router.delete('/exam-cluster/:id', (req, res) => {
         deleteTasksFromList(removedListDoc._id);
     })
 })
+
+
 
 //Exam location
 router.get('/exam-cluster/:clusterId/exam-location', (req, res) => {
@@ -331,6 +339,8 @@ router.delete('/exam-cluster/:clusterId/exam-location/:locationId', (req, res) =
         }
     });
 })
+
+
 
 //Test score
 router.get('/test-score', (req, res) => {
