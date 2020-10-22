@@ -9,4 +9,4 @@ const postSchema = new Schema({
     date_posted: String
 })
 
-module.exports = mongoose.model('Post', postSchema, 'Posts')
+module.exports = mongoose.model('post', postSchema, 'posts')

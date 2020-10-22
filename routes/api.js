@@ -2,17 +2,20 @@ const express = require('express')
 const jwt = require('jsonwebtoken')
 const router = express.Router()
 
-const User = require('../models/user')
+const Admin = require('../models/admin')
 const University = require('../models/university')
 const ExamCluster = require('../models/exam-cluster')
 const ExamLocation = require('../models/exam-location')
-const TestScore = require('../models/test-score')
+const Exam = require('../models/exam')
 const Post = require('../models/post')
+const Major = require('../models/major')
+const Combination = require('../models/combination')
+const TimeLine = require('../models/time-line')
 
 const mongoose = require('mongoose')
 
 
-mongoose.connect('mongodb+srv://nguyenoanh:nxE7Gs0E8dsZu2XU@cluster0.5asx0.mongodb.net/StuManage?retryWrites=true&w=majority', {useNewUrlParser: true, useUnifiedTopology: true}, function(err){
+mongoose.connect('mongodb+srv://admin:admin@nambp-mongodb.bae7r.mongodb.net/university-exam-meta', {useNewUrlParser: true, useUnifiedTopology: true}, function(err){
     if(err){
         console.log("Error " +err)
     }else{
@@ -44,13 +47,13 @@ router.get('/', (req, res) => {
 
 //Authentication
 router.post('/register', (req, res) => {
-    let userData = req.body
-    let user = new User(userData)
-    user.save((error, registeredUser) => {
+    let adminData = req.body
+    let admin = new Admin(adminData)
+    admin.save((error, registeredAdmin) => {
         if(error){
             console.log(error)
         }else {
-            let payload = { subject: registeredUser._id}
+            let payload = { subject: registeredAdmin._id}
             let token = jwt.sign(payload, 'sevretKey')
 
             res.status(200).send({token})
@@ -59,19 +62,19 @@ router.post('/register', (req, res) => {
 })
 
 router.post('/login', (req, res) =>{
-    let userData = req.body
+    let adminData = req.body
 
-    User.findOne({email: userData.email}, (error, user) =>{
+    Admin.findOne({email: adminData.email}, (error, admin) =>{
         if(error){
             console.log(error)
         }else{
-            if(!user){
+            if(!admin){
                 res.status(401).send('Invalid email')
             }else{
-                if(user.password !== userData.password){
+                if(admin.password !== adminData.password){
                     res.status(401).send('Invalid password')
                 }else{
-                    let payload = { subject: user._id}
+                    let payload = { subject: admin._id}
                     let token = jwt.sign(payload, 'secretKey')
                     res.status(200).send({token})
                 }
@@ -82,7 +85,7 @@ router.post('/login', (req, res) =>{
 
 
 
-//University
+//University - done 
 router.get('/university', (req, res) => {
     University.find({
         UniversityName: req.universityName
@@ -110,9 +113,28 @@ router.post('/university', (req, res) => {
     })
 })
 
+router.put('/university/:id', (req, res) => {
+    University.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
+})
+
+router.delete('/university/:id', (req, res) => {
+    University.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedUniversityDoc) => {
+        res.send(removedUniversityDoc);
+
+        deleteTasksFromList(removedUniversityDoc._id);
+    })
+})
 
 
-// Post
+
+
+// Post - done
 router.get('/university/:universityId/posts', (req, res) => {
     Post.find({
         uniID: req.params.universityId
@@ -201,11 +223,104 @@ router.delete('/university/:universityId/posts/:postId', (req, res) => {
 })
 
 
+//Major - done
+router.get('/university/:universityId/major', (req, res) => {
+    Major.find({
+        university_id: req.params.universityId
+    }).then((major) => {
+        res.json(major);
+    }).catch((e) => {
+        res.send(e);
+    });
+})
 
-//Exam cluster
+router.post('/university/:universityId/major', (req, res) => {
+    University.findOne({
+        _id: req.params.universityId
+    }).then((university) => {
+        if (university) {
+            return true;
+        }
+
+        return false;
+    }).then((canCreateMajors) => {
+        if (canCreateMajors) {
+            let newMajor = new Major({
+                university_id: req.params.universityId,
+                department_name: req.body.department_name,
+                department_id: req.body.department_id,
+                major_name: req.body.major_name,
+                major_id: req.body.major_id,
+                combination: req.body.combination,
+                info: req.body.info,
+                degree: req.body.degree,
+                training_time: req.body.training_time
+            });
+            newMajor.save().then((newMajorDoc) => {
+                res.send(newMajorDoc);
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    })
+})
+
+router.put('/university/:universityId/major/:majorId', (req, res) => {
+    University.findOne({
+        _id: req.params.universityId
+    }).then((university) => {
+        if (university) {
+            return true;
+        }
+
+        return false;
+    }).then((canUpdateMajor) => {
+        if (canUpdateMajor) {
+            Major.findOneAndUpdate({
+                _id: req.params.majorId,
+                university_id: req.params.universityId
+            }, {
+                    $set: req.body
+                }
+            ).then(() => {
+                res.send({ message: 'Updated successfully.' })
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    })
+})
+
+router.delete('/university/:universityId/major/:majorId', (req, res) => {
+    University.findOne({
+        _id: req.params.universityId
+    }).then((university) => {
+        if (university) {
+            return true;
+        }
+
+        return false;
+    }).then((canDeleteMajor) => {
+        
+        if (canDeleteMajor) {
+            Major.findOneAndRemove({
+                _id: req.params.majorId,
+                university_id: req.params.universityId
+            }).then((removedMajorDoc) => {
+                res.send(removedMajorDoc);
+            })
+        } else {
+            res.sendStatus(404);
+        }
+    });
+})
+
+
+
+//Exam cluster - done
 router.get('/exam-cluster', (req, res) => {
     ExamCluster.find({
-        ClusterName: req.clusterName
+        ClusterName: req.exam_cluster_name
     }).then((cluster) => {
         res.json(cluster);
     }).catch((e) => {
@@ -241,20 +356,19 @@ router.put('/exam-cluster/:id', (req, res) => {
 router.delete('/exam-cluster/:id', (req, res) => {
     ExamCluster.findOneAndRemove({
         _id: req.params.id
-    }).then((removedListDoc) => {
-        res.send(removedListDoc);
+    }).then((removedClusterDoc) => {
+        res.send(removedClusterDoc);
 
-        // delete all the tasks that are in the deleted list
-        deleteTasksFromList(removedListDoc._id);
+        deleteTasksFromList(removedClusterDoc._id);
     })
 })
 
 
 
-//Exam location
+//Exam location - done
 router.get('/exam-cluster/:clusterId/exam-location', (req, res) => {
     ExamLocation.find({
-        cltID: req.params.clusterId
+        exam_cluster_id: req.params.clusterId
     }).then((location) => {
         res.json(location);
     }).catch((e) => {
@@ -274,11 +388,13 @@ router.post('/exam-cluster/:clusterId/exam-location', (req, res) => {
     }).then((canCreateLocation) => {
         if (canCreateLocation) {
             let newLocation = new ExamLocation({
-                cltID: req.params.clusterId,
-                locationName: req.body.locationName,
-                locationID: req.body.locationID,
+                exam_cluster_id: req.params.clusterId,
+                exam_cluster_name: req.body.exam_cluster_name,
+                exam_location_id: req.body.exam_location_id,
+                location: req.body.location,
                 address: req.body.address,
-                room: req.body.room
+                exam_room_number: req.body.exam_room_number,
+                limit_student: req.body.limit_student
             });
             newLocation.save().then((newLocationDoc) => {
                 res.send(newLocationDoc);
@@ -303,7 +419,7 @@ router.put('/exam-cluster/:clusterId/exam-location/:locationId', (req, res) => {
             // the currently authenticated user can update tasks
             ExamLocation.findOneAndUpdate({
                 _id: req.params.locationId,
-                cltID: req.params.clusterId
+                exam_cluster_id: req.params.clusterId
             }, {
                     $set: req.body
                 }
@@ -330,7 +446,7 @@ router.delete('/exam-cluster/:clusterId/exam-location/:locationId', (req, res) =
         if (canDeleteLocation) {
             ExamLocation.findOneAndRemove({
                 _id: req.params.locationId,
-                cltID: req.params.clusterId
+                exam_cluster_id: req.params.clusterId
             }).then((removedLocationDoc) => {
                 res.send(removedLocationDoc);
             })
@@ -341,25 +457,24 @@ router.delete('/exam-cluster/:clusterId/exam-location/:locationId', (req, res) =
 })
 
 
-
-//Test score
-router.get('/test-score', (req, res) => {
-    TestScore.find({
-        Subject: req.subject
-    }).then((testScore) => {
-        res.json(testScore);
+//Combination - done 
+router.get('/combination', (req, res) => {
+    Combination.find({
+        CombinationID: req.combination_id
+    }).then((combination) => {
+        res.json(combination);
     }).catch((e) => {
         res.send(e);
     });
 })
 
-router.post('/test-score', (req, res) => {
-    let testScoreData = req.body
-    let testScore = new TestScore(testScoreData)
+router.post('/combination', (req, res) => {
+    let combinationData = req.body
+    let combination = new Combination(combinationData)
 
     //save in database
-    testScore
-    .save(testScore)
+    combination
+    .save(combination)
     .then(data => {
         res.send(data)
     }).catch(err => {
@@ -370,13 +485,117 @@ router.post('/test-score', (req, res) => {
     })
 })
 
-router.delete('/test-score/:id', (req, res) => {
-    TestScore.findOneAndRemove({
+router.put('/combination/:id', (req, res) => {
+    Combination.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
+})
+
+router.delete('/combination/:id', (req, res) => {
+    Combination.findOneAndRemove({
         _id: req.params.id
-    }).then((removedListDoc) => {
-        res.send(removedListDoc);
+    }).then((removedCombinationDoc) => {
+        res.send(removedCombinationDoc);
 
         // delete all the tasks that are in the deleted list
-        deleteTasksFromList(removedListDoc._id);
+        deleteTasksFromList(removedCombinationDoc._id);
+    })
+})
+
+
+//Exam
+router.get('/exam', (req, res) => {
+    Exam.find({
+        ExamName: req.exam_name
+    }).then((exam) => {
+        res.json(exam);
+    }).catch((e) => {
+        res.send(e);
+    });
+})
+
+router.post('/exam', (req, res) => {
+    let examData = req.body
+    let exam = new Exam(examData)
+
+    //save in database
+    exam
+    .save(exam)
+    .then(data => {
+        res.send(data)
+    }).catch(err => {
+        res.status(500).send({
+            message:
+            err.message || "Some error occurred while creating the Tutorial."
+        })
+    })
+})
+
+router.put('/exam/:id', (req, res) => {
+    Exam.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
+})
+
+router.delete('/exam/:id', (req, res) => {
+    Exam.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedExamDoc) => {
+        res.send(removedExamDoc);
+
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedExamDoc._id);
+    })
+})
+
+
+//Time Line
+router.get('/time-line', (req, res) => {
+    TimeLine.find({
+        Subject: req.subject
+    }).then((timeLine) => {
+        res.json(timeLine);
+    }).catch((e) => {
+        res.send(e);
+    });
+})
+
+router.post('/time-line', (req, res) => {
+    let timeLineData = req.body
+    let timeLine = new TimeLine(timeLineData)
+
+    //save in database
+    timeLine
+    .save(timeLine)
+    .then(data => {
+        res.send(data)
+    }).catch(err => {
+        res.status(500).send({
+            message:
+            err.message || "Some error occurred while creating the Tutorial."
+        })
+    })
+})
+
+router.put('/time-line/:id', (req, res) => {
+    TimeLine.findOneAndUpdate({ _id: req.params.id}, {
+        $set: req.body
+    }).then(() => {
+        res.send({ 'message': 'updated successfully'});
+    });
+})
+
+router.delete('/timeline/:id', (req, res) => {
+    TimeLine.findOneAndRemove({
+        _id: req.params.id
+    }).then((removedTimeLineDoc) => {
+        res.send(removedTimeLineDoc);
+
+        // delete all the tasks that are in the deleted list
+        deleteTasksFromList(removedTimeLineDoc._id);
     })
 })

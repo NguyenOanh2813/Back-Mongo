@@ -2,8 +2,8 @@ const mongoose = require('mongoose')
 
 const Schema = mongoose.Schema
 const examClusterSchema = new Schema({
-    clusterID: String,
-    clusterName: String
+    exam_cluster_id: String,
+    exam_cluster_name: String
 })
 
-module.exports = mongoose.model('Exam-Cluster', examClusterSchema, 'Exam-Clusters')
+module.exports = mongoose.model('exam_cluster', examClusterSchema, 'exam_clusters')
